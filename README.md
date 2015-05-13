@@ -14,3 +14,6 @@ You need :
 
 Finish the game with a timeout and reading a last time from the table.
 
+### Exercice 2 : Simulate a Deadlock
+
+Add an option to your program to simluate the pingpong game failing with a deadlock.

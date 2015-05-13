@@ -1,15 +1,22 @@
 package main
 
 import (
+	"flag"
 	"time"
 )
 
 func main() {
+	lock := flag.Bool("pingponglock", false, "set this to true to demonstrate a dead lock situation using channels")
+	flag.Parse()
+
 	table := make(chan *Ball)
 	go player("Ping !", table)
 	go player("Pong !", table)
-	table <- &Ball{}
-	<-time.After(time.Second * 5)
+
+	if !*lock {
+		table <- &Ball{}
+	}
+	<-time.After(time.Second * 2)
 	<-table
 
 }
