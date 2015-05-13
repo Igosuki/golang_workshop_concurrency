@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"time"
 )
 
@@ -31,4 +32,64 @@ func player(name string, table chan *Ball) {
 		time.Sleep(time.Millisecond * 100)
 		table <- ball
 	}
+}
+
+type Feed chan *[]Item
+
+type Fetcher interface {
+	Fetch() (items []Item, next time.Time, err error)
+}
+
+type pollFetcher struct {
+}
+
+func (p *pollFetcher) Fetch() ([]Item, time.Time, error) {
+	return []Item{}, time.Now(), nil
+}
+
+func Fetch(domain string) Fetcher {
+	return &pollFetcher{}
+}
+
+type Item struct {
+	Title, Channel, GUID string
+}
+
+type Subscription interface {
+	Updates() chan Item
+	Close() error
+}
+
+type concreteSub struct {
+	feed chan Item
+}
+
+func (cs *concreteSub) Updates() chan Item {
+	if cs.feed == nil {
+		cs.feed = make(chan Item)
+	}
+	return cs.feed
+}
+
+func (cs *concreteSub) Close() error {
+	close(cs.feed)
+	item, ok := <-cs.feed
+	if ok == true {
+		return fmt.Errorf("Couldn't close feed, read %v", item)
+	}
+	return nil
+}
+
+func Subscribe(fetcher Fetcher) Subscription {
+	return &concreteSub{}
+}
+
+func Merge(subscriptions ...Subscription) Subscription {
+	mergedSub := &concreteSub{
+		feed: make(chan Item),
+	}
+	for _, sub := range subscriptions {
+		sub.Close()
+	}
+	return mergedSub
 }
