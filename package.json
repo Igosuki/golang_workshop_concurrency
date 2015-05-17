@@ -1,0 +1,20 @@
+{
+  "name": "concurrency",
+  "version": "0.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "angular2": "2.0.0-alpha.23",
+    "es6-module-loader": "^0.16.6",
+    "reflect-metadata": "^0.1.0",
+    "rx": "^2.5.2",
+    "systemjs": "^0.16.11",
+    "traceur-runtime": "latest",
+    "zone.js": "^0.5.0"
+  }
+}
