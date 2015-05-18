@@ -16,5 +16,14 @@
     "systemjs": "^0.16.11",
     "traceur-runtime": "latest",
     "zone.js": "^0.5.0"
+  },
+  "devDependencies": {
+    "connect": "^3.3.5",
+    "del": "^1.1.1",
+    "gulp": "^3.8.11",
+    "gulp-traceur": "^0.17.0",
+    "open": "0.0.5",
+    "serve-static": "^1.9.2",
+    "systemjs-builder": "^0.10.6"
   }
 }
