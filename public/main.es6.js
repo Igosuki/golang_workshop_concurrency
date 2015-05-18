@@ -4,7 +4,7 @@ import {
   ViewAnnotation as View,
   For,
   EventEmitter,
-  Decorator
+  DirectiveAnnotation as Directive,
 } from './angular2/angular2';
 
 import {name} from './exports.es6';
@@ -20,22 +20,27 @@ class AutoReloader {
   }
 }
 
-@Decorator({
-  selector: '#colorwheel',
-  events: {'click': "nextColor()"}
+@Component({
+  selector: 'colorwheel'
+})
+@View({
+  template: `
+    <button (click)="nextColor()" [style.background-color]="currentColor">Click The Wheel</button>
+  `
 })
 class ColorWheel {
   constructor() {
     this.colors = ["green", "red", "yellow", "blue"]
     this.colorIdx = -1;
-    nextColor()
+    this.nextColor()
   }
   nextColor() {
+    console.log("Next color");
     this.colorIdx += 1;
     if(this.colorIdx >= this.colors.length) {
       this.colorIdx = 0;
     }
-    this.currentColor = colors[colorIdx]
+    this.currentColor = this.colors[this.colorIdx]
   }
 }
 
@@ -44,7 +49,7 @@ class ColorWheel {
   injectables: [RssFeed]
 })
 @View({
-  templateUrl: 'templates/rss-feed.html',
+  templateUrl: 'templates/feed.html',
   directives: [For, AutoReloader, ColorWheel]
 })
 class RssApp {

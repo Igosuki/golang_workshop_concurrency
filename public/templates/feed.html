@@ -5,4 +5,4 @@
     <span>{{item.Channel}}</span>
   </li>
 </ul>
-<button [style.color]="currentColor" id="colorwheel">Change color</button>
+<colorwheel (click)="nextColor()" [style.background-color]="currentColor">Change color</colorwheel>
