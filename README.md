@@ -95,7 +95,9 @@ Techniques : nil channels, a nil channel is just considered a non passing case.
 ** Solution **
 Only push in the feed if there is at least one pending item
 
+### Exercice 7 : Duplicates
 
+Fetch may return duplicates, maintain a register of a unique id and check that for all items
 
 
 

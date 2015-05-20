@@ -93,6 +93,7 @@ func (cs *concreteSub) loop() {
 		var next time.Time
 		var pending []Item
 		var err error
+		guids := make(map[string]bool)
 		go func() {
 			for {
 				var feed chan Item
@@ -119,7 +120,12 @@ func (cs *concreteSub) loop() {
 						next = time.Now().Add(10 * time.Second)
 						break
 					}
-					pending = append(pending, items...)
+					for _, item := range items {
+						if !guids[item.GUID] {
+							pending = append(pending, item)
+							guids[item.GUID] = true
+						}
+					}
 				case feed <- first:
 					pending = pending[1:]
 				}
