@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/xml"
-	"fmt"
+	// "fmt"
 	log "github.com/Sirupsen/logrus"
 	"net/http"
 	"time"
@@ -61,17 +61,10 @@ type Subscription interface {
 }
 
 type concreteSub struct {
-	feed       chan Item
-	fetchers   []Fetcher
-	closing    chan chan bool
-	errors     chan error
-	maxPending int
-}
-
-type fetchResult struct {
-	fetched []Item
-	next    time.Time
-	err     error
+	feed     chan Item
+	fetchers []Fetcher
+	closed   bool
+	err      error
 }
 
 func (cs *concreteSub) Updates() <-chan Item {
@@ -82,71 +75,25 @@ func (cs *concreteSub) Updates() <-chan Item {
 }
 
 func (cs *concreteSub) Close() error {
-	if cs.closing == nil {
-		cs.closing = make(chan chan bool)
-	}
-	closeChan := make(chan bool)
-	cs.closing <- closeChan
-	<-closeChan
-	close(cs.feed)
-	item, ok := <-cs.feed
-	if ok == true {
-		return fmt.Errorf("Couldn't close feed, read %v", item)
-	}
-	return <-cs.errors
+	cs.closed = true
+	return cs.err
 }
 
 func (cs *concreteSub) loop() {
 	for _, f := range cs.fetchers {
-		var next time.Time
-		var pending []Item
-		var err error
-		var fetchDone chan fetchResult
-		guids := make(map[string]bool)
 		go func() {
 			for {
-				var feed chan Item
-				var first Item
-				if len(pending) > 0 {
-					first = pending[0]
-					feed = cs.feed
+				items, next, err := f.Fetch()
+				if err != nil {
+					cs.err = err
+					time.Sleep(10 * time.Second)
+					continue
 				}
-				var delay time.Duration
+				for _, item := range items {
+					cs.feed <- item
+				}
 				if now := time.Now(); next.After(now) {
-					delay = next.Sub(time.Now())
-				}
-				var startFetch <-chan time.Time
-				if fetchDone == nil && len(pending) < cs.maxPending {
-					startFetch = time.After(delay)
-				}
-				select {
-				case closingChan := <-cs.closing:
-					closingChan <- true
-					return
-				case <-startFetch:
-					var items []Item
-					fetchDone = make(chan fetchResult, 1)
-					go func() {
-						items, next, err = f.Fetch()
-						fetchDone <- fetchResult{items, next, err}
-					}()
-				case result := <-fetchDone:
-					fetchDone = nil
-					if result.err != nil {
-						log.Errorln(result.err)
-						cs.errors <- result.err
-						next = time.Now().Add(10 * time.Second)
-						break
-					}
-					next = result.next
-					for _, item := range result.fetched {
-						if !guids[item.GUID] {
-							pending = append(pending, item)
-							guids[item.GUID] = true
-						}
-					}
-				case feed <- first:
-					pending = pending[1:]
+					time.Sleep(next.Sub(now))
 				}
 			}
 		}()
@@ -155,10 +102,8 @@ func (cs *concreteSub) loop() {
 
 func Subscribe(fetcher Fetcher) Subscription {
 	c := &concreteSub{
-		feed:       make(chan Item),
-		fetchers:   []Fetcher{fetcher},
-		errors:     make(chan error),
-		maxPending: 1000,
+		feed:     make(chan Item),
+		fetchers: []Fetcher{fetcher},
 	}
 	go c.loop()
 	return c

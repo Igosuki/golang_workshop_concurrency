@@ -32,3 +32,25 @@ Model public and private structs and interfaces for :
 
 be minimalistic, and use the zero initialization pattern (everything should work out of the box after an &struct{}{})
 
+### Exercice 4 : Naive poll loop
+
+Useful libs : 
+- Logrus : github.com/Sirupsen/logrus
+
+Put ping pong and rss in their own files, create a run script with 4 go procs that runs the program including all the source files (just using the main package).
+
+Create a feed function that can launch subs for a list of domains and close them eventually.
+You may use response request patterns in the form of chan chan struct{}
+
+- Implement a simple Fetch with the http package and xml decoder
+- Start implementing a naive update loop on the sub struct that manages the fetching. This loop will be called in a routine.
+
+The loop :
+1. Fetch
+2. Send items on the subscription feed
+3. Exit when close is called and report errors
+
+
+
+
+
