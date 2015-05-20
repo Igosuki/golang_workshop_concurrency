@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/xml"
-	// "fmt"
+	"fmt"
 	log "github.com/Sirupsen/logrus"
 	"net/http"
 	"time"
@@ -57,14 +57,14 @@ type Item struct {
 
 type Subscription interface {
 	Updates() <-chan Item
-	Close() error
+	Close() []error
 }
 
 type concreteSub struct {
 	feed     chan Item
 	fetchers []Fetcher
-	closed   bool
-	err      error
+	closing  chan chan []error
+	errors   []error
 }
 
 func (cs *concreteSub) Updates() <-chan Item {
@@ -74,26 +74,48 @@ func (cs *concreteSub) Updates() <-chan Item {
 	return cs.feed
 }
 
-func (cs *concreteSub) Close() error {
-	cs.closed = true
-	return cs.err
+func (cs *concreteSub) Close() []error {
+	if cs.closing == nil {
+		cs.closing = make(chan chan []error)
+	}
+	closeChan := make(chan []error)
+	cs.closing <- closeChan
+	close(cs.feed)
+	item, ok := <-cs.feed
+	if ok == true {
+		return []error{fmt.Errorf("Couldn't close feed, read %v", item)}
+	}
+	return <-closeChan
 }
 
 func (cs *concreteSub) loop() {
 	for _, f := range cs.fetchers {
+		var next time.Time
+		var pending []Item
+		var err error
 		go func() {
 			for {
-				items, next, err := f.Fetch()
-				if err != nil {
-					cs.err = err
-					time.Sleep(10 * time.Second)
-					continue
-				}
-				for _, item := range items {
-					cs.feed <- item
-				}
+				var delay time.Duration
 				if now := time.Now(); next.After(now) {
-					time.Sleep(next.Sub(now))
+					delay = next.Sub(time.Now())
+				}
+				startFetch := time.After(delay)
+				select {
+				case closingChan := <-cs.closing:
+					closingChan <- cs.errors
+					return
+				case <-startFetch:
+					var items []Item
+					items, next, err = f.Fetch()
+					if err != nil {
+						log.Errorln(err)
+						cs.errors = append(cs.errors, err)
+						next = time.Now().Add(10 * time.Second)
+						break
+					}
+					pending = append(pending, items...)
+				case cs.feed <- pending[0]:
+					pending = pending[1:]
 				}
 			}
 		}()

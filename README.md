@@ -50,6 +50,45 @@ The loop :
 2. Send items on the subscription feed
 3. Exit when close is called and report errors
 
+### Several bugs are present in this loop
+
+Race conditions when closing. (use go run -race)
+Sleeps may keep the loop running. (can you guess why ?)
+It may block on the feed.
+
+### Exercice 5 : Select -> The answer to concurrent events 
+
+The 3 features of the loop should each become a statement, which can only be push or receive channel statements.
+
+Reminder : 
+1. A close order was made, the loop should clean up and return.
+2. It's time to fetch
+3. Something is read from the subscription feed
+
+#### Step 1 The Close channel
+You are sending a close command to subscription loop routines. Use a request response structure for the close field (I send a request and read from the response).
+
+N.B: if you are using multiple fetchers routines for a single sub (aka merge) you may want to close that channel after all routines have closed.
+
+functions : make, close
+
+#### Step 2 Fetching after a delay
+Since you can't just fetch and push into the feed, you'll have to create an intermediary array of pending items waiting to be read from the feed.
+
+You also have to store the next time you will fetch, and determine whether or not it has expired, in which case you have to fetch immediatly.
+
+packages : time
+functions : append
+
+### Step 3 Sending items down the feed
+
+Read the first pending item down the feed, then splice it from pending items.
+
+** Yet another crash ** 
+
+Jeez, the cake was a lie, I still get locked out...
+
+
 
 
 
