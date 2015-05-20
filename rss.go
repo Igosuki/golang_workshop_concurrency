@@ -95,6 +95,12 @@ func (cs *concreteSub) loop() {
 		var err error
 		go func() {
 			for {
+				var feed chan Item
+				var first Item
+				if len(pending) > 0 {
+					first = pending[0]
+					feed = cs.feed
+				}
 				var delay time.Duration
 				if now := time.Now(); next.After(now) {
 					delay = next.Sub(time.Now())
@@ -114,7 +120,7 @@ func (cs *concreteSub) loop() {
 						break
 					}
 					pending = append(pending, items...)
-				case cs.feed <- pending[0]:
+				case feed <- first:
 					pending = pending[1:]
 				}
 			}

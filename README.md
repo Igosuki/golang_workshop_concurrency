@@ -88,6 +88,14 @@ Read the first pending item down the feed, then splice it from pending items.
 
 Jeez, the cake was a lie, I still get locked out...
 
+### Exercice 6 : Fix select statements 
+
+Techniques : nil channels, a nil channel is just considered a non passing case.
+
+** Solution **
+Only push in the feed if there is at least one pending item
+
+
 
 
 
