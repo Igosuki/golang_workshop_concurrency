@@ -99,6 +99,10 @@ Only push in the feed if there is at least one pending item
 
 Fetch may return duplicates, maintain a register of a unique id and check that for all items
 
+### Exercice 8 : Unbound pending items
+
+Manage memory by having a max amount of items in the queue (you can pop it as fifo, you can use an int).
+
 
 
 

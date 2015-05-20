@@ -61,10 +61,11 @@ type Subscription interface {
 }
 
 type concreteSub struct {
-	feed     chan Item
-	fetchers []Fetcher
-	closing  chan chan []error
-	errors   []error
+	feed       chan Item
+	fetchers   []Fetcher
+	closing    chan chan []error
+	errors     []error
+	maxPending int
 }
 
 func (cs *concreteSub) Updates() <-chan Item {
@@ -106,7 +107,10 @@ func (cs *concreteSub) loop() {
 				if now := time.Now(); next.After(now) {
 					delay = next.Sub(time.Now())
 				}
-				startFetch := time.After(delay)
+				var startFetch <-chan time.Time
+				if len(pending) < cs.maxPending {
+					startFetch = time.After(delay)
+				}
 				select {
 				case closingChan := <-cs.closing:
 					closingChan <- cs.errors
@@ -136,8 +140,9 @@ func (cs *concreteSub) loop() {
 
 func Subscribe(fetcher Fetcher) Subscription {
 	c := &concreteSub{
-		feed:     make(chan Item),
-		fetchers: []Fetcher{fetcher},
+		feed:       make(chan Item),
+		fetchers:   []Fetcher{fetcher},
+		maxPending: 1000,
 	}
 	go c.loop()
 	return c
