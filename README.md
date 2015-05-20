@@ -103,6 +103,11 @@ Fetch may return duplicates, maintain a register of a unique id and check that f
 
 Manage memory by having a max amount of items in the queue (you can pop it as fifo, you can use an int).
 
+### Exercice 9 : The loops block while fetching items 
+
+Use a go routine for fetching and create a 4th select statement for the result.
+
+
 
 
 

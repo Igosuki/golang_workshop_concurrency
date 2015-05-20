@@ -68,6 +68,12 @@ type concreteSub struct {
 	maxPending int
 }
 
+type fetchResult struct {
+	fetched []Item
+	next    time.Time
+	err     error
+}
+
 func (cs *concreteSub) Updates() <-chan Item {
 	if cs.feed == nil {
 		cs.feed = make(chan Item)
@@ -94,6 +100,7 @@ func (cs *concreteSub) loop() {
 		var next time.Time
 		var pending []Item
 		var err error
+		var fetchDone chan fetchResult
 		guids := make(map[string]bool)
 		go func() {
 			for {
@@ -108,7 +115,7 @@ func (cs *concreteSub) loop() {
 					delay = next.Sub(time.Now())
 				}
 				var startFetch <-chan time.Time
-				if len(pending) < cs.maxPending {
+				if fetchDone == nil && len(pending) < cs.maxPending {
 					startFetch = time.After(delay)
 				}
 				select {
@@ -117,14 +124,22 @@ func (cs *concreteSub) loop() {
 					return
 				case <-startFetch:
 					var items []Item
-					items, next, err = f.Fetch()
-					if err != nil {
+					fetchDone = make(chan fetchResult, 1)
+					go func() {
+						items, next, err = f.Fetch()
+						fetchDone <- fetchResult{items, next, err}
+					}()
+
+				case result := <-fetchDone:
+					fetchDone = nil
+					if result.err != nil {
 						log.Errorln(err)
 						cs.errors = append(cs.errors, err)
 						next = time.Now().Add(10 * time.Second)
 						break
 					}
-					for _, item := range items {
+					next = result.next
+					for _, item := range result.fetched {
 						if !guids[item.GUID] {
 							pending = append(pending, item)
 							guids[item.GUID] = true
